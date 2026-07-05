@@ -10,8 +10,14 @@ Es consumido por orders-service vía HTTP interno:
   - GET  /inventory/{product_id}          -> consultar stock
   - POST /inventory/{product_id}/reserve  -> descontar stock al confirmar pedido
 """
+import os
+import time
+import psutil
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+
+INICIO = time.time()
+READY_MAX_MEM_PERCENT = float(os.getenv("READY_MAX_MEM_PERCENT", "90"))
 
 app = FastAPI(
     title="Inventory Service",
@@ -36,6 +42,25 @@ class ReserveRequest(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "inventory-service"}
+
+
+@app.get("/live")
+def live():
+    """Liveness: el proceso esta vivo (no depende de nadie externo)."""
+    return {"alive": True, "uptime_segundos": round(time.time() - INICIO, 1)}
+
+
+@app.get("/ready")
+def ready():
+    """Readiness basada en el uso real de CPU y memoria."""
+    cpu = psutil.cpu_percent(interval=0.1)
+    memoria = psutil.virtual_memory().percent
+    if memoria > READY_MAX_MEM_PERCENT:
+        raise HTTPException(
+            status_code=503,
+            detail={"ready": False, "cpu_%": cpu, "memoria_%": memoria, "umbral_%": READY_MAX_MEM_PERCENT},
+        )
+    return {"ready": True, "cpu_%": cpu, "memoria_%": memoria}
 
 
 @app.get("/inventory/{product_id}")
