@@ -14,10 +14,18 @@ spec:
       labels:
         app: orders-service
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1                              # diferencia maxima de pods entre nodos
+          topologyKey: kubernetes.io/hostname     # "topologia" = por nodo (hostname)
+          whenUnsatisfiable: ScheduleAnyway       # si no se puede repartir perfecto, igual lo agenda
+          labelSelector:
+            matchLabels:
+              app: orders-service                 # aplica a los pods de orders-service
+
       containers:
         - name: orders-service
           # Reemplazar <ACCOUNT_ID> y <REGION> tras el push a Amazon ECR.
-          image: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/orders-service:latest
+          image:  631932931672.dkr.ecr.us-east-1.amazonaws.com/orders-service:latest
           ports:
             - containerPort: 8003
           # ---- COMUNICACIÓN INTER-SERVICIO ----
