@@ -1,0 +1,18 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orders-service
+spec:
+  scaleTargetRef:                 # a QUE deployment se le aplica
+    apiVersion: apps/v1
+    kind: Deployment
+    name: orders-service
+  minReplicas: 2                  # nunca menos de 2 pods
+  maxReplicas: 6                  # nunca mas de 6 pods
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu                 # metrica: CPU
+        target:
+          type: Utilization
+          averageUtilization: 50  # objetivo: 50% del request de CPU
